@@ -1,0 +1,28 @@
+#Reusable script definition
+.build-script:
+  script: &build_script
+    - yarn install --frozen-lockfile
+    - echo "Loading AWS SSM Variables into .env.ssm file"
+    - export AWS_PROFILE=${CI_ENVIRONMENT_NAME}
+    - echo AWS_PROFILE is ${AWS_PROFILE}
+    - node ./read-ssm.js
+    - echo "Building files..."
+    - env $(cat .env.ssm | xargs) yarn build
+    - echo "Build successful!"
+  artifacts: &build_artifacts
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
+    paths:
+      - build/
+
+#Build for development on every push
+build-dev:
+  stage: build
+  only:
+    - branches
+  except:
+    - master
+    - develop
+  environment:
+    name: development
+  script: *build_script
+  artifacts: *build_artifacts
